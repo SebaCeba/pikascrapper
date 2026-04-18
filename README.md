@@ -401,7 +401,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 16:45**: GitHub Actions implementado - workflow diario automático configurado (8:00 AM), documentación completa en docs/setup/GITHUB_ACTIONS_SETUP.md
+**2026-04-18 17:00**: Corrección de rutas en pipeline_complete.py y scraper.js para soportar estructura reorganizada (scripts/) y keyword dinámico
 
 ## Tecnologías
 

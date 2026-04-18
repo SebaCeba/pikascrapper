@@ -23,7 +23,9 @@ load_dotenv()
 # CONFIGURACIÓN
 # ======================
 
-SCRAPER_SCRIPT = "scraper.js"
+# Obtener directorio base del proyecto (un nivel arriba de scripts/)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRAPER_SCRIPT = os.path.join(BASE_DIR, "scripts", "scraper.js")
 SEARCH_KEYWORD = sys.argv[1] if len(sys.argv) > 1 else "pikachu"
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -57,8 +59,9 @@ def run_scraper(keyword):
     if result.returncode != 0:
         raise Exception(f"Error en scraper: {result.stderr}")
     
-    # Buscar el CSV más reciente
-    csv_files = glob.glob(f"TEST_*_{keyword}_*.csv")
+    # Buscar el CSV más reciente en el directorio base del proyecto
+    csv_pattern = os.path.join(BASE_DIR, f"*{keyword}*.csv")
+    csv_files = glob.glob(csv_pattern)
     
     if not csv_files:
         raise Exception(f"No se generó CSV para '{keyword}'")

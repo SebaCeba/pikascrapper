@@ -1,11 +1,12 @@
 /**
- * TCGMatch.cl Scraper - Cartas Pikachu
+ * TCGMatch.cl Scraper - Cartas TCG
  * 
- * Extrae información de todas las cartas "Pikachu" del catálogo de TCGMatch.cl,
+ * Extrae información de cartas del catálogo de TCGMatch.cl,
  * incluyendo datos generales de cada carta y la lista completa de vendedores.
  * Los resultados se guardan en un CSV con la fecha actual.
  * 
- * Uso: node scraper.js
+ * Uso: node scraper.js <keyword>
+ * Ejemplo: node scraper.js pikachu
  */
 
 const puppeteer = require('puppeteer');
@@ -15,7 +16,7 @@ const { createObjectCsvWriter } = require('csv-writer');
 // CONFIGURACIÓN
 // ----------------------------
 const BASE_URL = 'https://tcgmatch.cl';
-const SEARCH_QUERY = 'Pikachu';
+const SEARCH_QUERY = process.argv[2] || 'Pikachu';
 const MAX_PAGES = Infinity;  // Cambiar a un número para limitar páginas
 const DELAY_MS = 1500;       // Pausa entre peticiones (ms)
 
@@ -156,10 +157,11 @@ async function scrapeProduct(page, url) {
 async function main() {
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10);
-    const csvFilename = `${dateStr}_pikachu_tcgmatch.csv`;
+    const keyword = SEARCH_QUERY.toLowerCase().replace(/\s+/g, '_');
+    const csvFilename = `${dateStr}_${keyword}_tcgmatch.csv`;
 
     console.log('═'.repeat(60));
-    console.log('  TCGMatch Scraper - Cartas Pikachu');
+    console.log(`  TCGMatch Scraper - ${SEARCH_QUERY}`);
     console.log(`  Fecha: ${dateStr}`);
     console.log(`  Archivo de salida: ${csvFilename}`);
     console.log('═'.repeat(60));
