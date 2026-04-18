@@ -16,15 +16,16 @@ import requests
 from dotenv import load_dotenv
 import csv
 
-# Cargar variables de entorno
-load_dotenv()
-
 # ======================
 # CONFIGURACIÓN
 # ======================
 
 # Obtener directorio base del proyecto (un nivel arriba de scripts/)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Cargar variables de entorno desde el directorio base
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
 SCRAPER_SCRIPT = os.path.join(BASE_DIR, "scripts", "scraper.js")
 SEARCH_KEYWORD = sys.argv[1] if len(sys.argv) > 1 else "pikachu"
 
@@ -49,11 +50,12 @@ def run_scraper(keyword):
     print("🔍 PASO 1: Ejecutando scraper...")
     print(f"   Buscando: {keyword}")
     
-    # Ejecutar scraper
+    # Ejecutar scraper desde el directorio base del proyecto
     result = subprocess.run(
         ["node", SCRAPER_SCRIPT, keyword],
         capture_output=True,
-        text=True
+        text=True,
+        cwd=BASE_DIR  # Ejecutar desde la raíz del proyecto
     )
     
     if result.returncode != 0:

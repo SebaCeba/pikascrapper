@@ -241,9 +241,12 @@ Tabla: tcg_cards
 ### 1. Automatizar el flujo completo
 
 ```bash
-# Scraper → CSV → Supabase
-node scraper.js pikachu
-python upload_to_supabase_advanced.py TEST_*_pikachu_*.csv
+# Scraper → CSV → Supabase (Pipeline completo)
+python scripts/pipeline_complete.py pikachu
+
+# O por pasos separados:
+node scripts/scraper.js pikachu
+python scripts/upload_to_supabase_requests.py 2026-04-18_pikachu_tcgmatch.csv
 ```
 
 ### 2. Crear API para consultar datos
