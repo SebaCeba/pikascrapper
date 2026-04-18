@@ -17,7 +17,8 @@ pikascrapper/
 ├── 📂 docs/                             # Documentación del proyecto
 │   └── setup/
 │       ├── SUPABASE_SETUP.md            # 📖 Guía completa de Supabase
-│       └── create_supabase_table.sql   # 💾 Script DDL de tabla
+│       ├── GITHUB_ACTIONS_SETUP.md      # ⚙️ Guía de automatización
+│       └── create_supabase_table.sql    # 💾 Script DDL de tabla
 │
 ├── 📂 tests/                            # Scripts de prueba y validación
 │   ├── test.js                          # Test general del scraper
@@ -34,7 +35,8 @@ pikascrapper/
 │   └── README_old.md                    # README anterior
 │
 ├── 📂 .github/                          # Configuración GitHub
-│   ├── workflows/                       # GitHub Actions (próximamente)
+│   ├── workflows/
+│   │   └── scraper-daily.yml            # ⏰ GitHub Action diario (8:00 AM)
 │   └── instructions/
 │       ├── api-tutorial.instructions.md # Instrucciones para Copilot
 │       └── auto-update-docs.instructions.md
@@ -167,8 +169,7 @@ Carpetas/archivos que se agregarán:
 
 ```
 .github/workflows/
-├── scrape-daily.yml          # GitHub Action para scraping diario
-└── scrape-weekly.yml         # GitHub Action semanal
+└── scrape-weekly.yml         # GitHub Action semanal (alternativa)
 
 scripts/
 ├── alert_price_changes.py    # Detectar cambios de precio

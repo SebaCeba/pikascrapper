@@ -19,7 +19,7 @@ Pikascrapper automatiza la recolección de información de cartas TCG desde TCGm
 - ✅ **Pipeline automatizado** Scraper → CSV → Supabase
 - ✅ **Transformación de datos** automática
 - ✅ **API REST** para sincronización con Supabase
-- 🔄 **GitHub Actions ready** (agendamiento automático próximamente)
+- ✅ **GitHub Actions** configurado (scraping automático diario)
 
 ---
 
@@ -102,7 +102,8 @@ pikascrapper/
 ├── 📂 archived/               # Scripts obsoletos
 │
 ├── 📂 .github/
-│   ├── workflows/             # GitHub Actions (próximamente)
+│   ├── workflows/
+│   │   └── scraper-daily.yml  # GitHub Action diario
 │   └── instructions/          # Copilot customization
 │
 ├── .env.example               # Template configuración
@@ -169,6 +170,49 @@ node scripts/scraper.js pikachu
 ```bash
 python scripts/upload_to_supabase_requests.py 2026-04-18_pikachu_tcgmatch.csv
 ```
+
+---
+
+## ⏰ Automatización con GitHub Actions
+
+¿Quieres que el scraping se ejecute automáticamente todos los días sin intervención manual? Usa GitHub Actions.
+
+### 🚀 Setup Rápido
+
+1. **Configurar Secrets en GitHub:**
+   - Ve a Settings → Secrets and variables → Actions
+   - Crea 3 secrets:
+     - `SUPABASE_URL`: Tu URL de Supabase
+     - `SUPABASE_KEY`: Tu Legacy anon key
+     - `SUPABASE_TABLE`: `LISTADO_CARTAS`
+
+2. **Workflow ya está configurado:**
+   - El archivo `.github/workflows/scraper-daily.yml` ya existe
+   - Se ejecuta **automáticamente todos los días a las 8:00 AM** (hora Chile)
+   - También puedes ejecutarlo manualmente desde Actions tab
+
+3. **Ejecutar Manualmente:**
+   - Ve a **Actions** tab en GitHub
+   - Click en **Daily TCG Scraper**
+   - Click en **Run workflow**
+   - (Opcional) Cambia el keyword
+   - Click en **Run workflow** verde
+
+### 📋 Features del Workflow
+
+- ✅ Ejecución diaria programada (cron)
+- ✅ Ejecución manual on-demand
+- ✅ Descarga CSV como artifact (30 días retención)
+- ✅ Notificación automática por email si falla
+- ✅ Crea issue en GitHub si hay errores
+
+### 📖 Documentación Completa
+
+Ver [docs/setup/GITHUB_ACTIONS_SETUP.md](docs/setup/GITHUB_ACTIONS_SETUP.md) para:
+- Guía paso a paso de configuración de secrets
+- Personalización de frecuencia (cambiar cron)
+- Troubleshooting de errores comunes
+- Monitoreo y estadísticas
 
 ---
 
@@ -357,7 +401,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 16:20**: Reorganización profesional del proyecto - estructura de carpetas (scripts/, docs/, tests/, temp/, archived/), README completo, y STRUCTURE.md documentando la arquitectura
+**2026-04-18 16:45**: GitHub Actions implementado - workflow diario automático configurado (8:00 AM), documentación completa en docs/setup/GITHUB_ACTIONS_SETUP.md
 
 ## Tecnologías
 
