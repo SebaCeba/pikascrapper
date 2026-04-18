@@ -17,6 +17,11 @@ jobs:
   scrape-and-upload:
     runs-on: ubuntu-latest
     
+    # Permisos necesarios para el workflow
+    permissions:
+      contents: read
+      issues: write
+    
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4

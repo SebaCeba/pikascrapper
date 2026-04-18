@@ -40,6 +40,7 @@ Realizar scraping de la web [TCGmatch.cl](https://tcgmatch.cl/) para obtener una
 - **2026-04-18 17:15**: Corrección completa de rutas - agregar cwd=BASE_DIR en subprocess, cargar .env explícitamente, actualizar package.json y documentación.
 - **2026-04-18 17:30**: Corrección de manejo de valores vacíos en CSV - convertir strings vacíos a null antes de insertar en Supabase, evitando error HTTP 400 bigint.
 - **2026-04-18 17:45**: Implementación sistema anti-duplicados - header "resolution=ignore-duplicates" en pipeline, script SQL de limpieza, documentación completa en FIX_DUPLICATES.md.
+- **2026-04-18 18:00**: Corrección permisos GitHub Actions - agregar permissions: issues: write para permitir creación automática de issues en caso de fallo.
 
 ## Almacenamiento
 Los resultados se guardan en archivos CSV con la fecha actual en el nombre de archivo (ej. `2026-04-18_pikachu_tcgmatch.csv`). Cada fila representa una oferta única de un vendedor para una carta específica.

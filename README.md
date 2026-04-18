@@ -415,7 +415,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 17:45**: Implementación sistema anti-duplicados - header "resolution=ignore-duplicates" en pipeline, script SQL de limpieza, documentación completa en FIX_DUPLICATES.md
+**2026-04-18 18:00**: Corrección permisos GitHub Actions - agregar permissions: issues: write para permitir creación automática de issues en caso de fallo
 
 ## Tecnologías
 

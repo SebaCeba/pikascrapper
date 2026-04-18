@@ -140,6 +140,25 @@ Ve a **Issues** tab → Busca label `scraper-failure`
 1. Ejecuta `docs/setup/create_supabase_table.sql` en Supabase
 2. Verifica que `SUPABASE_TABLE` sea exactamente `LISTADO_CARTAS`
 
+### Error: "Resource not accessible by integration"
+
+**Causa**: GitHub Actions no tiene permisos de escritura.
+
+**Solución**:
+El workflow ya tiene los permisos configurados correctamente:
+```yaml
+permissions:
+  contents: read
+  issues: write
+```
+
+Si aún tienes este error:
+1. Settings → Actions → General
+2. Scroll a **Workflow permissions**
+3. Selecciona **Read and write permissions**
+4. ✅ Check **Allow GitHub Actions to create and approve pull requests**
+5. Guardar
+
 ### El workflow no se ejecuta automáticamente
 
 **Causa**: GitHub desactiva workflows si no hay commits recientes.
