@@ -37,6 +37,7 @@ Realizar scraping de la web [TCGmatch.cl](https://tcgmatch.cl/) para obtener una
 - **2026-04-18 16:20**: Reorganización profesional del proyecto - estructura de carpetas (scripts/, docs/, tests/, temp/, archived/), README completo, y STRUCTURE.md documentando la arquitectura.
 - **2026-04-18 16:45**: GitHub Actions implementado - workflow diario automático configurado (8:00 AM), documentación completa en docs/setup/GITHUB_ACTIONS_SETUP.md.
 - **2026-04-18 17:00**: Corrección de rutas en pipeline_complete.py y scraper.js para soportar estructura reorganizada (scripts/) y keyword dinámico.
+- **2026-04-18 17:15**: Corrección completa de rutas - agregar cwd=BASE_DIR en subprocess, cargar .env explícitamente, actualizar package.json y documentación.
 
 ## Almacenamiento
 Los resultados se guardan en archivos CSV con la fecha actual en el nombre de archivo (ej. `2026-04-18_pikachu_tcgmatch.csv`). Cada fila representa una oferta única de un vendedor para una carta específica.

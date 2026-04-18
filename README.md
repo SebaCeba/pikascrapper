@@ -401,7 +401,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 17:00**: Corrección de rutas en pipeline_complete.py y scraper.js para soportar estructura reorganizada (scripts/) y keyword dinámico
+**2026-04-18 17:15**: Corrección completa de rutas - agregar cwd=BASE_DIR en subprocess, cargar .env explícitamente, actualizar package.json y documentación
 
 ## Tecnologías
 
