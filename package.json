@@ -1,17 +1,26 @@
 {
-  "name": "tcgmatch",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "csv-writer": "^1.6.0",
-    "puppeteer": "^24.41.0"
-  }
+    "name":  "tcgmatch",
+    "version":  "1.0.0",
+    "description":  "PikaTracker - Scraper y API de cartas Pikachu",
+    "main":  "index.js",
+    "scripts":  {
+                    "import":  "node import-csv.js",
+                    "scrape":  "node scraper.js",
+                    "scrape-import":  "node scraper.js \u0026\u0026 node import-csv.js",
+                    "start":  "node server.js"
+                },
+    "keywords":  [
+
+                 ],
+    "author":  "",
+    "license":  "ISC",
+    "type":  "commonjs",
+    "dependencies":  {
+                         "better-sqlite3":  "^12.9.0",
+                         "cors":  "^2.8.6",
+                         "csv-parse":  "^6.2.1",
+                         "csv-writer":  "^1.6.0",
+                         "express":  "^5.2.1",
+                         "puppeteer":  "^24.41.0"
+                     }
 }

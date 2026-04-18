@@ -32,6 +32,7 @@ Realizar scraping de la web [TCGmatch.cl](https://tcgmatch.cl/) para obtener una
   - Vendedores: `div.overflow-hidden.bg-white.shadow-sm` (cada bloque)
 - **2026-04-18**: Test exitoso con 3 productos: Nombre ✅, Foto ✅, Edición ✅, Rareza ✅, Número ✅, Vendedores ✅ (33, 34, 27 vendedores respectivamente). 94 filas de CSV generadas correctamente.
 - **2026-04-18**: Se genera el script final `scraper.js` listo para scraping completo.
+- **2026-04-18 14:30**: Se crea instrucción para actualización automática de documentación (contexto.md + README.md) y se inicializa README.md del proyecto.
 
 ## Almacenamiento
 Los resultados se guardan en archivos CSV con la fecha actual en el nombre de archivo (ej. `2026-04-18_pikachu_tcgmatch.csv`). Cada fila representa una oferta única de un vendedor para una carta específica.

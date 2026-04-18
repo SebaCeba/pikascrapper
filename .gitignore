@@ -1,5 +1,42 @@
+# Dependencies
 node_modules/
-*.log
-.DS_Store
+.venv/
+__pycache__/
+*.pyc
+
+# Environment variables
 .env
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# CSV outputs
 *.csv
+!supabase_table_template.csv
+
+# Temp files
+temp/
+*.tmp
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+build/
+
+# Archived/Old files
+archived/*
+pikachu-collection-hub-main/
+pikachu-collection-hub-main.zip
