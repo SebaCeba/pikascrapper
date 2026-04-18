@@ -37,6 +37,7 @@ cd pikascrapper
 **Node.js** (scraper):
 ```bash
 npm install
+npx puppeteer browsers install chrome
 ```
 
 **Python** (upload a Supabase):
@@ -286,6 +287,20 @@ node tests/test_product.js
 
 ## 🛠️ Troubleshooting
 
+### Error: Could not find Chrome (Puppeteer)
+
+Si al ejecutar el scraper ves:
+```
+Error: Could not find Chrome (127.0.6533.119)
+```
+
+**Solución**:
+```bash
+npx puppeteer browsers install chrome
+```
+
+Esto descarga Chrome para Puppeteer (~190MB). Solo necesitas hacerlo una vez.
+
 ### Error: Invalid API key
 
 - ✅ Usa **Legacy anon key** (no Publishable key)
@@ -415,7 +430,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 18:00**: Corrección permisos GitHub Actions - agregar permissions: issues: write para permitir creación automática de issues en caso de fallo
+**2026-04-18 18:10**: Mejora debugging pipeline - mostrar stdout del scraper, mejor manejo de encoding, mensajes de error más descriptivos
 
 ## Tecnologías
 

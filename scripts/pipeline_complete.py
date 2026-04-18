@@ -49,29 +49,46 @@ def run_scraper(keyword):
     """
     print("🔍 PASO 1: Ejecutando scraper...")
     print(f"   Buscando: {keyword}")
+    print()
     
     # Ejecutar scraper desde el directorio base del proyecto
     result = subprocess.run(
         ["node", SCRAPER_SCRIPT, keyword],
         capture_output=True,
         text=True,
-        cwd=BASE_DIR  # Ejecutar desde la raíz del proyecto
+        cwd=BASE_DIR,  # Ejecutar desde la raíz del proyecto
+        encoding='utf-8',
+        errors='ignore'  # Ignorar errores de encoding
     )
     
+    # Mostrar output del scraper
+    if result.stdout:
+        print(result.stdout)
+    
+    # Verificar si hubo errores
     if result.returncode != 0:
-        raise Exception(f"Error en scraper: {result.stderr}")
+        print(f"❌ Error en scraper (código {result.returncode}):")
+        if result.stderr:
+            print(result.stderr)
+        raise Exception(f"Scraper falló con código {result.returncode}")
     
     # Buscar el CSV más reciente en el directorio base del proyecto
     csv_pattern = os.path.join(BASE_DIR, f"*{keyword}*.csv")
     csv_files = glob.glob(csv_pattern)
     
     if not csv_files:
+        # Intentar buscar cualquier CSV reciente
+        all_csv_pattern = os.path.join(BASE_DIR, "*.csv")
+        all_csv_files = glob.glob(all_csv_pattern)
+        print(f"\n⚠️  No se encontró CSV con keyword '{keyword}'")
+        if all_csv_files:
+            print(f"   CSVs encontrados: {[os.path.basename(f) for f in all_csv_files[:5]]}")
         raise Exception(f"No se generó CSV para '{keyword}'")
     
     # Obtener el más reciente
     latest_csv = max(csv_files, key=os.path.getctime)
     
-    print(f"   ✅ CSV generado: {latest_csv}")
+    print(f"\n   ✅ CSV generado: {os.path.basename(latest_csv)}")
     return latest_csv
 
 # ======================
