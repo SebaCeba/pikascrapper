@@ -430,7 +430,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 18:10**: Mejora debugging pipeline - mostrar stdout del scraper, mejor manejo de encoding, mensajes de error más descriptivos
+**2026-04-18 18:30**: Instalación de Chrome para Puppeteer - agregado paso en GitHub Actions workflow y documentación, pipeline completo funcional local y en CI
 
 ## Tecnologías
 

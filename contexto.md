@@ -42,6 +42,7 @@ Realizar scraping de la web [TCGmatch.cl](https://tcgmatch.cl/) para obtener una
 - **2026-04-18 17:45**: Implementación sistema anti-duplicados - header "resolution=ignore-duplicates" en pipeline, script SQL de limpieza, documentación completa en FIX_DUPLICATES.md.
 - **2026-04-18 18:00**: Corrección permisos GitHub Actions - agregar permissions: issues: write para permitir creación automática de issues en caso de fallo.
 - **2026-04-18 18:10**: Mejora debugging pipeline - mostrar stdout del scraper, mejor manejo de encoding, mensajes de error más descriptivos.
+- **2026-04-18 18:30**: Instalación de Chrome para Puppeteer - agregado paso en GitHub Actions workflow y documentación, pipeline completo funcional local y en CI.
 
 ## Almacenamiento
 Los resultados se guardan en archivos CSV con la fecha actual en el nombre de archivo (ej. `2026-04-18_pikachu_tcgmatch.csv`). Cada fila representa una oferta única de un vendedor para una carta específica.
