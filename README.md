@@ -357,7 +357,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 14:30**: Se crea instrucción para actualización automática de documentación
+**2026-04-18 16:20**: Reorganización profesional del proyecto - estructura de carpetas (scripts/, docs/, tests/, temp/, archived/), README completo, y STRUCTURE.md documentando la arquitectura
 
 ## Tecnologías
 
