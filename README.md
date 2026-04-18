@@ -302,6 +302,20 @@ node tests/test_product.js
 - ✅ Ejecuta el SQL de [create_supabase_table.sql](docs/setup/create_supabase_table.sql)
 - ✅ Verifica que las columnas coincidan
 
+### Datos Duplicados en Supabase
+
+Si ejecutaste el pipeline varias veces y tienes registros duplicados:
+
+**Solución rápida:**
+1. Ve a Supabase SQL Editor
+2. Ejecuta los scripts en [FIX_DUPLICATES.md](docs/setup/FIX_DUPLICATES.md)
+3. Crea constraint UNIQUE para prevenir futuros duplicados
+
+**Prevención automática:**  
+El pipeline ya ignora duplicados con `resolution=ignore-duplicates`
+
+Ver guía completa: [docs/setup/FIX_DUPLICATES.md](docs/setup/FIX_DUPLICATES.md)
+
 ---
 
 ## 📚 Documentación
@@ -401,7 +415,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 17:30**: Corrección de manejo de valores vacíos en CSV - convertir strings vacíos a null antes de insertar en Supabase, evitando error HTTP 400 bigint
+**2026-04-18 17:45**: Implementación sistema anti-duplicados - header "resolution=ignore-duplicates" en pipeline, script SQL de limpieza, documentación completa en FIX_DUPLICATES.md
 
 ## Tecnologías
 

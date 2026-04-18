@@ -119,7 +119,7 @@ def read_csv_file(filename):
 
 def upload_to_supabase(data, table_name):
     """
-    Sube datos a Supabase usando API REST
+    Sube datos a Supabase usando API REST con manejo de duplicados
     
     Args:
         data (list): Registros a subir
@@ -133,12 +133,12 @@ def upload_to_supabase(data, table_name):
     # Construir URL del endpoint
     url = f"{SUPABASE_URL}/rest/v1/{table_name}"
     
-    # Headers
+    # Headers con resolution de duplicados
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
-        "Prefer": "return=representation"
+        "Prefer": "return=representation,resolution=ignore-duplicates"
     }
     
     # Agregar metadata a cada registro
@@ -152,8 +152,14 @@ def upload_to_supabase(data, table_name):
     if response.status_code not in [200, 201]:
         raise Exception(f"Error HTTP {response.status_code}: {response.text}")
     
-    result = response.json()
-    print(f"   ✅ {len(result)} registros insertados")
+    result = response.json() if response.text else []
+    inserted_count = len(result)
+    
+    if inserted_count < len(data):
+        duplicates = len(data) - inserted_count
+        print(f"   ⚠️  {duplicates} duplicados ignorados")
+    
+    print(f"   ✅ {inserted_count} registros nuevos insertados")
     
     return result
 
