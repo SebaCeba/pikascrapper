@@ -1,0 +1,246 @@
+/**
+ * TCGMatch.cl Scraper - Cartas Pikachu
+ * 
+ * Extrae información de todas las cartas "Pikachu" del catálogo de TCGMatch.cl,
+ * incluyendo datos generales de cada carta y la lista completa de vendedores.
+ * Los resultados se guardan en un CSV con la fecha actual.
+ * 
+ * Uso: node scraper.js
+ */
+
+const puppeteer = require('puppeteer');
+const { createObjectCsvWriter } = require('csv-writer');
+
+// ----------------------------
+// CONFIGURACIÓN
+// ----------------------------
+const BASE_URL = 'https://tcgmatch.cl';
+const SEARCH_QUERY = 'Pikachu';
+const MAX_PAGES = Infinity;  // Cambiar a un número para limitar páginas
+const DELAY_MS = 1500;       // Pausa entre peticiones (ms)
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ----------------------------
+// PASO 1: Recolectar enlaces de productos del catálogo
+// ----------------------------
+async function getProductLinks(page) {
+    const links = new Set();
+    let currentPage = 1;
+
+    while (currentPage <= MAX_PAGES) {
+        const url = `${BASE_URL}/cartas/busqueda/q=${encodeURIComponent(SEARCH_QUERY)}&page=${currentPage}`;
+        console.log(`  📄 Página ${currentPage}: ${url}`);
+        await page.goto(url, { waitUntil: 'networkidle2' });
+        await sleep(DELAY_MS);
+
+        // Cerrar modal "Entendido" si aparece
+        try {
+            const btns = await page.$$('button');
+            for (const btn of btns) {
+                const txt = await btn.evaluate(el => el.innerText?.trim());
+                if (txt === 'Entendido') { await btn.click(); await sleep(500); break; }
+            }
+        } catch (e) {}
+
+        // Recolectar links de /producto/catalogo/
+        const pageLinks = await page.evaluate(() => {
+            return Array.from(document.querySelectorAll('a[href^="/producto/catalogo/"]'))
+                .map(a => a.href);
+        });
+
+        if (pageLinks.length === 0) {
+            console.log(`  ⏹ Página ${currentPage} sin más resultados de catálogo.`);
+            break;
+        }
+
+        pageLinks.forEach(l => links.add(l));
+        console.log(`  ✓ ${pageLinks.length} productos (acumulado: ${links.size})`);
+
+        // Verificar si hay siguiente página
+        const hasNext = await page.evaluate(() => !!document.querySelector('a[aria-label="Next page"]'));
+        if (!hasNext) {
+            console.log(`  ⏹ Última página alcanzada.`);
+            break;
+        }
+        currentPage++;
+    }
+
+    return Array.from(links);
+}
+
+// ----------------------------
+// PASO 2: Extraer detalles de un producto individual
+// ----------------------------
+async function scrapeProduct(page, url) {
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    await sleep(2500);
+    try { await page.waitForSelector('p.text-2xl', { timeout: 8000 }); } catch(e) {}
+
+    const data = await page.evaluate(() => {
+        // --- NOMBRE ---
+        const nombre = document.querySelector('p.text-2xl.font-semibold')?.innerText?.trim() || '';
+
+        // --- FOTO ---
+        const fotoEl = document.querySelector('img[alt="Imagen del producto"]');
+        const foto = fotoEl ? fotoEl.src : '';
+
+        // --- EDICIÓN, RAREZA, NÚMERO ---
+        let edicion = '', rareza = '', numero = '';
+        const detailLabels = document.querySelectorAll('span.font-medium');
+        for (const label of detailLabels) {
+            const labelText = label.innerText?.trim().toLowerCase() || '';
+            const parentP = label.closest('p');
+            if (!parentP) continue;
+
+            if (labelText.includes('edici')) {
+                const linkEl = parentP.querySelector('a');
+                edicion = linkEl ? linkEl.innerText.trim() : parentP.innerText.replace(label.innerText, '').trim();
+            }
+            if (labelText.includes('rareza')) {
+                rareza = parentP.innerText.replace(label.innerText, '').trim();
+            }
+            if (labelText.includes('mero')) {
+                numero = parentP.innerText.replace(label.innerText, '').trim();
+            }
+        }
+
+        // --- VENDEDORES ---
+        const vendedores = [];
+        const vendorBlocks = document.querySelectorAll('div.overflow-hidden.bg-white.shadow-sm');
+
+        for (const block of vendorBlocks) {
+            // Vendedor
+            const vendedorEl = block.querySelector('a[href^="/@"] p.font-medium, a[href*="/perfil/"] p.font-medium');
+            const vendedor = vendedorEl?.innerText?.trim() || '';
+            if (!vendedor) continue;
+
+            // Ubicación
+            const ubicacionEl = block.querySelector('p.ml-1.text-sm');
+            const ubicacion = ubicacionEl?.innerText?.trim() || '';
+
+            // Idioma y Estado (badges)
+            const badges = block.querySelectorAll('span[class*="inline-flex"][class*="rounded-full"]');
+            let idioma = '', estado = '';
+            for (const badge of badges) {
+                const txt = badge.innerText?.trim();
+                if (!txt) continue;
+                if (badge.className.includes('yellow')) {
+                    idioma = txt;
+                } else if (badge.className.includes('gray') && (txt.includes('NM') || txt.includes('LP') || txt.includes('MP') || txt.includes('HP') || txt.includes('Menta') || txt.includes('Excelente') || txt.includes('Buen') || txt.includes('Moderado') || txt.includes('Jugado'))) {
+                    estado = txt;
+                }
+            }
+
+            // Precio
+            const precioEl = block.querySelector('p.text-green-800');
+            const precio = precioEl?.innerText?.trim() || '';
+
+            // Cantidad
+            const cantidadText = block.querySelector('div.bg-gray-50')?.innerText?.trim() || '';
+            const cantidadMatch = cantidadText.match(/de\s+(\d+)/);
+            const cantidad = cantidadMatch ? cantidadMatch[1] : '';
+
+            vendedores.push({ vendedor, precio, idioma, ubicacion, estado, cantidad });
+        }
+
+        return { nombre, foto, edicion, rareza, numero, vendedores };
+    });
+
+    return data;
+}
+
+// ----------------------------
+// PRINCIPAL
+// ----------------------------
+async function main() {
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const csvFilename = `${dateStr}_pikachu_tcgmatch.csv`;
+
+    console.log('═'.repeat(60));
+    console.log('  TCGMatch Scraper - Cartas Pikachu');
+    console.log(`  Fecha: ${dateStr}`);
+    console.log(`  Archivo de salida: ${csvFilename}`);
+    console.log('═'.repeat(60));
+
+    const browser = await puppeteer.launch({ headless: "new" });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    // --- Recolectar links de productos ---
+    console.log('\n[1/2] Recolectando links de productos del catálogo...\n');
+    const productLinks = await getProductLinks(page);
+    console.log(`\n📦 Total de productos únicos: ${productLinks.length}\n`);
+
+    // --- Configurar CSV Writer ---
+    const csvWriter = createObjectCsvWriter({
+        path: csvFilename,
+        header: [
+            { id: 'nombre', title: 'Nombre' },
+            { id: 'edicion', title: 'Edición' },
+            { id: 'rareza', title: 'Rareza' },
+            { id: 'numero', title: 'Número' },
+            { id: 'foto', title: 'Foto URL' },
+            { id: 'vendedor', title: 'Vendedor' },
+            { id: 'precio', title: 'Precio' },
+            { id: 'idioma', title: 'Idioma' },
+            { id: 'ubicacion', title: 'Ubicación' },
+            { id: 'estado', title: 'Estado' },
+            { id: 'cantidad', title: 'Cantidad' },
+            { id: 'url_producto', title: 'URL Producto' },
+            { id: 'fecha_extraccion', title: 'Fecha Extracción' },
+        ],
+        encoding: 'utf8',
+        append: false,
+    });
+
+    // --- Extraer datos de cada producto ---
+    console.log('[2/2] Extrayendo detalles de cada producto...\n');
+    const allRows = [];
+    let totalVendedores = 0;
+
+    for (let i = 0; i < productLinks.length; i++) {
+        const url = productLinks[i];
+        console.log(`[${i + 1}/${productLinks.length}] ${url}`);
+
+        try {
+            const productData = await scrapeProduct(page, url);
+            const { nombre, foto, edicion, rareza, numero, vendedores } = productData;
+
+            if (vendedores.length === 0) {
+                allRows.push({
+                    nombre, edicion, rareza, numero, foto,
+                    vendedor: '', precio: '', idioma: '', ubicacion: '', estado: '', cantidad: '',
+                    url_producto: url, fecha_extraccion: dateStr,
+                });
+            } else {
+                for (const v of vendedores) {
+                    allRows.push({
+                        nombre, edicion, rareza, numero, foto,
+                        ...v, url_producto: url, fecha_extraccion: dateStr,
+                    });
+                }
+            }
+            totalVendedores += vendedores.length;
+            console.log(`  ✓ ${nombre} | Ed: ${edicion} | #${numero} | ${rareza} | ${vendedores.length} vendedor(es)`);
+        } catch (err) {
+            console.log(`  ✗ Error: ${err.message}`);
+        }
+
+        await sleep(DELAY_MS);
+    }
+
+    // --- Escribir CSV ---
+    await csvWriter.writeRecords(allRows);
+    console.log('\n' + '═'.repeat(60));
+    console.log(`  ✅ Scraping completado!`);
+    console.log(`  📊 ${productLinks.length} productos | ${totalVendedores} ofertas de vendedores`);
+    console.log(`  📁 ${allRows.length} filas guardadas en ${csvFilename}`);
+    console.log('═'.repeat(60));
+
+    await browser.close();
+}
+
+main().catch(console.error);
