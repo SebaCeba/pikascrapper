@@ -102,11 +102,13 @@ def read_csv_file(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
-            # Transformar nombres de columnas
+            # Transformar nombres de columnas y limpiar valores vacíos
             transformed_row = {}
             for csv_col, db_col in column_mapping.items():
                 if csv_col in row:
-                    transformed_row[db_col] = row[csv_col]
+                    value = row[csv_col]
+                    # Convertir strings vacíos a None (null en JSON)
+                    transformed_row[db_col] = value if value.strip() else None
             data.append(transformed_row)
     
     return data

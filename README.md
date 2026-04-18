@@ -401,7 +401,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 17:15**: Corrección completa de rutas - agregar cwd=BASE_DIR en subprocess, cargar .env explícitamente, actualizar package.json y documentación
+**2026-04-18 17:30**: Corrección de manejo de valores vacíos en CSV - convertir strings vacíos a null antes de insertar en Supabase, evitando error HTTP 400 bigint
 
 ## Tecnologías
 
