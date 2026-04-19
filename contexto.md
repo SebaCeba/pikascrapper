@@ -46,6 +46,7 @@ Realizar scraping de la web [TCGmatch.cl](https://tcgmatch.cl/) para obtener una
 - **2026-04-19 10:00**: Implementación modo Supabase directo en scraper.js - scraper ahora detecta variables de entorno y sube directo a Supabase sin CSV intermedio, resolviendo problemas de GitHub Actions y optimizando pipeline.
 - **2026-04-19 10:15**: Actualización GitHub Actions workflow - simplificado para ejecutar scraper.js directo sin Python, eliminando dependencia de pipeline_complete.py y artifacts CSV innecesarios.
 - **2026-04-19 10:30**: Push a GitHub con implementación completa - workflow optimizado, scraper con modo dual (Supabase/CSV), pipeline_complete.py actualizado como wrapper, listo para ejecución automática en GitHub Actions.
+- **2026-04-19 10:45**: Fix Puppeteer en GitHub Actions - agregados argumentos --no-sandbox y otros flags necesarios para ejecutar Chrome en entornos CI/CD Linux sin privilegios de sandbox.
 
 ## Almacenamiento
 Los resultados se guardan en archivos CSV con la fecha actual en el nombre de archivo (ej. `2026-04-18_pikachu_tcgmatch.csv`). Cada fila representa una oferta única de un vendedor para una carta específica.

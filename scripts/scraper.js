@@ -243,7 +243,22 @@ async function main() {
     }
     console.log('═'.repeat(60));
 
-    const browser = await puppeteer.launch({ headless: "new" });
+    // Configurar argumentos de Puppeteer según entorno
+    const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+    const launchOptions = {
+        headless: "new",
+        args: isCI ? [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ] : []
+    };
+
+    const browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
