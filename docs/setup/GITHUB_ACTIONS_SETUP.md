@@ -78,22 +78,47 @@ Keyword: charizard    # Busca Charizard en vez de Pikachu
 
 1. Ve a **Actions** tab
 2. Click en el workflow run más reciente
-3. Expande el step **🕷️ Run scraper and upload to Supabase**
+3. Expande el step **🕷️ Run scraper (Direct Supabase Upload)**
 4. Verás el output del scraper
 
-### Opción 2: Descargar CSV
+**Salida esperada:**
+```
+════════════════════════════════════════════════════════════
+  TCGMatch Scraper - pikachu
+  Modo: 🔗 Supabase Direct Upload
+════════════════════════════════════════════════════════════
 
-Cada run genera un CSV como artifact:
+[1/2] Recolectando links de productos...
+  ✓ 649 productos encontrados
 
-1. Ve al workflow run
-2. Scroll hasta **Artifacts** al final de la página
-3. Descarga `scraper-csv-XXXX.zip`
+[2/2] Extrayendo detalles...
+  ✓ Pikachu - 051/162 | SV05 | 34 vendedor(es)
 
-### Opción 3: Ver en Supabase
+📤 Subiendo 2500 registros a Supabase...
+✅ Datos subidos exitosamente
+════════════════════════════════════════════════════════════
+```
+
+### Opción 2: Ver en Supabase (Recomendado)
 
 1. Abre Supabase → Table Editor
 2. Selecciona tabla `LISTADO_CARTAS`
 3. Filtra por `search_keyword = 'pikachu'` y fecha reciente
+
+---
+
+### Opción 3: Ejecutar Query SQL
+
+Puedes verificar la data directamente con SQL:
+
+```sql
+SELECT 
+  COUNT(*) as total_registros,
+  COUNT(DISTINCT nombre) as cartas_unicas,
+  MAX(fecha_extraccion) as ultima_extraccion
+FROM "LISTADO_CARTAS"
+WHERE search_keyword = 'pikachu';
+```
 
 ---
 
@@ -197,7 +222,7 @@ Edita el step del workflow:
 run: |
   for KEYWORD in pikachu charizard mewtwo; do
     echo "🔍 Scraping: $KEYWORD"
-    python scripts/pipeline_complete.py "$KEYWORD"
+    node scripts/scraper.js "$KEYWORD"
   done
 ```
 

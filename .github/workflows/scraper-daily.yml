@@ -32,22 +32,13 @@ jobs:
           node-version: '18'
           cache: 'npm'
       
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-      
-      - name: 📦 Install Node dependencies
+      - name: � Install Node dependencies
         run: npm ci
       
       - name: 🌐 Install Chrome for Puppeteer
         run: npx puppeteer browsers install chrome
       
-      - name: 📦 Install Python dependencies
-        run: pip install -r requirements.txt
-      
-      - name: 🕷️ Run scraper and upload to Supabase
+      - name: 🕷️ Run scraper (Direct Supabase Upload)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
@@ -55,15 +46,7 @@ jobs:
         run: |
           KEYWORD="${{ github.event.inputs.keyword || 'pikachu' }}"
           echo "🔍 Scraping keyword: $KEYWORD"
-          python scripts/pipeline_complete.py "$KEYWORD"
-      
-      - name: 📊 Upload CSV artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: scraper-csv-${{ github.run_number }}
-          path: '*.csv'
-          retention-days: 30
+          node scripts/scraper.js "$KEYWORD"
       
       - name: 📧 Notify on failure
         if: failure()

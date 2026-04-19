@@ -3,14 +3,28 @@
  * 
  * Extrae información de cartas del catálogo de TCGMatch.cl,
  * incluyendo datos generales de cada carta y la lista completa de vendedores.
- * Los resultados se guardan en un CSV con la fecha actual.
+ * 
+ * MODOS DE OPERACIÓN:
+ * 1. CSV Mode (default): Guarda resultados en CSV con timestamp
+ * 2. Supabase Mode: Sube directo a Supabase si detecta variables de entorno
+ * 
+ * Variables de entorno para Supabase Mode:
+ * - SUPABASE_URL: URL de tu proyecto Supabase
+ * - SUPABASE_KEY: API key (anon/service_role)
+ * - SUPABASE_TABLE: Nombre de la tabla (default: tcg_cards)
  * 
  * Uso: node scraper.js <keyword>
  * Ejemplo: node scraper.js pikachu
  */
 
+require('dotenv').config();
 const puppeteer = require('puppeteer');
 const { createObjectCsvWriter } = require('csv-writer');
+
+// Polyfill para fetch en Node.js < 18
+if (typeof fetch === 'undefined') {
+    global.fetch = require('node-fetch');
+}
 
 // ----------------------------
 // CONFIGURACIÓN
@@ -19,6 +33,12 @@ const BASE_URL = 'https://tcgmatch.cl';
 const SEARCH_QUERY = process.argv[2] || 'Pikachu';
 const MAX_PAGES = Infinity;  // Cambiar a un número para limitar páginas
 const DELAY_MS = 1500;       // Pausa entre peticiones (ms)
+
+// Configuración Supabase
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_TABLE = process.env.SUPABASE_TABLE || 'tcg_cards';
+const USE_SUPABASE = !!(SUPABASE_URL && SUPABASE_KEY);
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -152,6 +172,60 @@ async function scrapeProduct(page, url) {
 }
 
 // ----------------------------
+// PASO 3: Subir datos a Supabase (modo alternativo a CSV)
+// ----------------------------
+async function uploadToSupabase(rows) {
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+        throw new Error('SUPABASE_URL y SUPABASE_KEY son requeridos para usar modo Supabase');
+    }
+
+    console.log(`\n📤 Subiendo ${rows.length} registros a Supabase...`);
+    
+    // Convertir datos al formato de Supabase (snake_case y valores null para vacíos)
+    const supabaseRows = rows.map(row => ({
+        nombre: row.nombre || null,
+        edicion: row.edicion || null,
+        rareza: row.rareza || null,
+        numero: row.numero || null,
+        foto_url: row.foto || null,
+        vendedor: row.vendedor || null,
+        precio: row.precio || null,
+        idioma: row.idioma || null,
+        ubicacion: row.ubicacion || null,
+        estado: row.estado || null,
+        cantidad: row.cantidad ? parseInt(row.cantidad) : null,
+        url_producto: row.url_producto || null,
+        fecha_extraccion: row.fecha_extraccion || null
+    }));
+
+    const url = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`;
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Prefer': 'resolution=ignore-duplicates'
+            },
+            body: JSON.stringify(supabaseRows)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error HTTP ${response.status}: ${errorText}`);
+        }
+
+        console.log('✅ Datos subidos exitosamente a Supabase');
+        return true;
+    } catch (error) {
+        console.error('❌ Error subiendo a Supabase:', error.message);
+        throw error;
+    }
+}
+
+// ----------------------------
 // PRINCIPAL
 // ----------------------------
 async function main() {
@@ -163,7 +237,10 @@ async function main() {
     console.log('═'.repeat(60));
     console.log(`  TCGMatch Scraper - ${SEARCH_QUERY}`);
     console.log(`  Fecha: ${dateStr}`);
-    console.log(`  Archivo de salida: ${csvFilename}`);
+    console.log(`  Modo: ${USE_SUPABASE ? '🔗 Supabase Direct Upload' : '📁 CSV Export'}`);
+    if (!USE_SUPABASE) {
+        console.log(`  Archivo de salida: ${csvFilename}`);
+    }
     console.log('═'.repeat(60));
 
     const browser = await puppeteer.launch({ headless: "new" });
@@ -176,27 +253,30 @@ async function main() {
     const productLinks = await getProductLinks(page);
     console.log(`\n📦 Total de productos únicos: ${productLinks.length}\n`);
 
-    // --- Configurar CSV Writer ---
-    const csvWriter = createObjectCsvWriter({
-        path: csvFilename,
-        header: [
-            { id: 'nombre', title: 'Nombre' },
-            { id: 'edicion', title: 'Edición' },
-            { id: 'rareza', title: 'Rareza' },
-            { id: 'numero', title: 'Número' },
-            { id: 'foto', title: 'Foto URL' },
-            { id: 'vendedor', title: 'Vendedor' },
-            { id: 'precio', title: 'Precio' },
-            { id: 'idioma', title: 'Idioma' },
-            { id: 'ubicacion', title: 'Ubicación' },
-            { id: 'estado', title: 'Estado' },
-            { id: 'cantidad', title: 'Cantidad' },
-            { id: 'url_producto', title: 'URL Producto' },
-            { id: 'fecha_extraccion', title: 'Fecha Extracción' },
-        ],
-        encoding: 'utf8',
-        append: false,
-    });
+    // --- Configurar CSV Writer (solo si no usamos Supabase) ---
+    let csvWriter = null;
+    if (!USE_SUPABASE) {
+        csvWriter = createObjectCsvWriter({
+            path: csvFilename,
+            header: [
+                { id: 'nombre', title: 'Nombre' },
+                { id: 'edicion', title: 'Edición' },
+                { id: 'rareza', title: 'Rareza' },
+                { id: 'numero', title: 'Número' },
+                { id: 'foto', title: 'Foto URL' },
+                { id: 'vendedor', title: 'Vendedor' },
+                { id: 'precio', title: 'Precio' },
+                { id: 'idioma', title: 'Idioma' },
+                { id: 'ubicacion', title: 'Ubicación' },
+                { id: 'estado', title: 'Estado' },
+                { id: 'cantidad', title: 'Cantidad' },
+                { id: 'url_producto', title: 'URL Producto' },
+                { id: 'fecha_extraccion', title: 'Fecha Extracción' },
+            ],
+            encoding: 'utf8',
+            append: false,
+        });
+    }
 
     // --- Extraer datos de cada producto ---
     console.log('[2/2] Extrayendo detalles de cada producto...\n');
@@ -234,15 +314,31 @@ async function main() {
         await sleep(DELAY_MS);
     }
 
-    // --- Escribir CSV ---
-    await csvWriter.writeRecords(allRows);
-    console.log('\n' + '═'.repeat(60));
-    console.log(`  ✅ Scraping completado!`);
-    console.log(`  📊 ${productLinks.length} productos | ${totalVendedores} ofertas de vendedores`);
-    console.log(`  📁 ${allRows.length} filas guardadas en ${csvFilename}`);
-    console.log('═'.repeat(60));
-
     await browser.close();
+
+    // --- Guardar resultados ---
+    console.log('\n' + '═'.repeat(60));
+    
+    if (USE_SUPABASE) {
+        // Modo Supabase: subir directo
+        try {
+            await uploadToSupabase(allRows);
+            console.log(`  ✅ Scraping completado y datos subidos!`);
+            console.log(`  📊 ${productLinks.length} productos | ${totalVendedores} ofertas de vendedores`);
+            console.log(`  🔗 ${allRows.length} registros subidos a Supabase`);
+        } catch (error) {
+            console.error('  ❌ Error en subida a Supabase');
+            process.exit(1);
+        }
+    } else {
+        // Modo CSV: escribir archivo
+        await csvWriter.writeRecords(allRows);
+        console.log(`  ✅ Scraping completado!`);
+        console.log(`  📊 ${productLinks.length} productos | ${totalVendedores} ofertas de vendedores`);
+        console.log(`  📁 ${allRows.length} filas guardadas en ${csvFilename}`);
+    }
+    
+    console.log('═'.repeat(60));
 }
 
 main().catch(console.error);

@@ -16,9 +16,11 @@ Pikascrapper automatiza la recolección de información de cartas TCG desde TCGm
 
 - ✅ **Web Scraping** con Puppeteer (headless browser)
 - ✅ **Extracción completa** (precio, vendedor, condición, stock, ubicación)
-- ✅ **Pipeline automatizado** Scraper → CSV → Supabase
-- ✅ **Transformación de datos** automática
-- ✅ **API REST** para sincronización con Supabase
+- ✅ **Dos modos de operación**: Supabase directo o CSV export
+- ✅ **Detección automática** de variables de entorno
+- ✅ **Pipeline automatizado** optimizado para GitHub Actions
+- ✅ **API REST** integrada con Supabase
+- ✅ **Prevención de duplicados** automática
 - ✅ **GitHub Actions** configurado (scraping automático diario)
 
 ---
@@ -119,58 +121,68 @@ pikascrapper/
 
 ## 🎯 Uso
 
-### Opción 1: Pipeline Completo ⭐ (Recomendado)
+### 🔥 Modo Recomendado: Supabase Directo ⭐
 
-Un solo comando ejecuta todo el flujo:
+El scraper detecta automáticamente las variables de entorno y sube **directo a Supabase** sin generar CSV intermedio:
 
 ```bash
-python scripts/pipeline_complete.py <keyword>
-```
-
-**Ejemplos:**
-```bash
-python scripts/pipeline_complete.py pikachu
-python scripts/pipeline_complete.py charizard
-python scripts/pipeline_complete.py "pokemon ex"
-```
-
-**Salida esperada:**
-```
-==================================================
-🚀 PIPELINE COMPLETO: SCRAPER → CSV → SUPABASE
-==================================================
-
-🔍 PASO 1: Ejecutando scraper...
-   Buscando: pikachu
-   ✅ CSV generado: 2026-04-18_pikachu_tcgmatch.csv
-
-📖 PASO 2: Leyendo CSV...
-📋 Columnas detectadas: Nombre, Edición, Rareza...
-   ✅ 128 registros leídos
-
-📤 PASO 3: Subiendo a Supabase...
-   ✅ 128 registros insertados
-
-==================================================
-✅ PIPELINE COMPLETADO
-==================================================
-Keyword: pikachu
-CSV: 2026-04-18_pikachu_tcgmatch.csv
-Registros: 128
-Tabla: LISTADO_CARTAS
-```
-
-### Opción 2: Ejecución Por Pasos
-
-**Paso 1 - Ejecutar scraper:**
-```bash
+# Configurar variables de entorno en .env (ver paso 3️⃣)
 node scripts/scraper.js pikachu
 ```
 
-**Paso 2 - Subir CSV:**
-```bash
-python scripts/upload_to_supabase_requests.py 2026-04-18_pikachu_tcgmatch.csv
+**Ventajas:**
+- ✅ Perfecto para GitHub Actions
+- ✅ No genera archivos temporales
+- ✅ Más rápido y eficiente
+- ✅ Manejo automático de duplicados
+
+**Salida esperada:**
 ```
+════════════════════════════════════════════════════════════
+  TCGMatch Scraper - pikachu
+  Fecha: 2026-04-19
+  Modo: 🔗 Supabase Direct Upload
+════════════════════════════════════════════════════════════
+
+[1/2] Recolectando links de productos...
+  ✓ 45 productos encontrados
+
+[2/2] Extrayendo detalles...
+  ✓ Pikachu - 182/165 | SV05 | 128 vendedor(es)
+
+📤 Subiendo 128 registros a Supabase...
+✅ Datos subidos exitosamente
+════════════════════════════════════════════════════════════
+  ✅ Scraping completado y datos subidos!
+  📊 45 productos | 128 ofertas de vendedores
+  🔗 128 registros subidos a Supabase
+════════════════════════════════════════════════════════════
+```
+
+### 📁 Modo CSV (Legacy)
+
+Si **NO** defines las variables de entorno, el scraper genera CSV:
+
+```bash
+# Sin .env configurado
+node scripts/scraper.js pikachu
+# Genera: 2026-04-19_pikachu_tcgmatch.csv
+```
+
+Luego puedes subir manualmente:
+```bash
+python scripts/upload_to_supabase_requests.py 2026-04-19_pikachu_tcgmatch.csv
+```
+
+### 🔧 Pipeline Completo Python (Legacy)
+
+Flujo tradicional: scraper → CSV → upload:
+
+```bash
+python scripts/pipeline_complete.py pikachu
+```
+
+> ⚠️ **Nota**: Este método genera CSV intermedio. Usa el modo directo para mayor eficiencia.
 
 ---
 
@@ -190,6 +202,7 @@ python scripts/upload_to_supabase_requests.py 2026-04-18_pikachu_tcgmatch.csv
 2. **Workflow ya está configurado:**
    - El archivo `.github/workflows/scraper-daily.yml` ya existe
    - Se ejecuta **automáticamente todos los días a las 8:00 AM** (hora Chile)
+   - Sube directo a Supabase (sin generar CSV intermedio)
    - También puedes ejecutarlo manualmente desde Actions tab
 
 3. **Ejecutar Manualmente:**
@@ -202,10 +215,11 @@ python scripts/upload_to_supabase_requests.py 2026-04-18_pikachu_tcgmatch.csv
 ### 📋 Features del Workflow
 
 - ✅ Ejecución diaria programada (cron)
-- ✅ Ejecución manual on-demand
-- ✅ Descarga CSV como artifact (30 días retención)
+- ✅ Ejecución manual on-demand con keyword personalizado
+- ✅ Subida directa a Supabase (sin archivos temporales)
 - ✅ Notificación automática por email si falla
 - ✅ Crea issue en GitHub si hay errores
+- ✅ Prevención automática de duplicados
 
 ### 📖 Documentación Completa
 
@@ -430,13 +444,19 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-18 18:30**: Instalación de Chrome para Puppeteer - agregado paso en GitHub Actions workflow y documentación, pipeline completo funcional local y en CI
+**2026-04-19 10:15**: Actualización GitHub Actions workflow - simplificado para ejecutar scraper.js directo sin Python, eliminando dependencia de pipeline_complete.py y artifacts CSV innecesarios
 
 ## Tecnologías
 
-- Node.js
-- Puppeteer (para scraping con navegador headless)
-- CSV Writer
+**Node.js:**
+- Puppeteer (scraping con navegador headless)
+- CSV Writer (export a CSV legacy)
+- dotenv (manejo de variables de entorno)
+- node-fetch (HTTP requests a Supabase)
+
+**Python:**
+- requests (HTTP API calls)
+- python-dotenv (configuración)
 
 ## Documentación Adicional
 

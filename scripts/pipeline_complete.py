@@ -1,20 +1,19 @@
 """
-Pipeline Completo: Scraper → CSV → Supabase
+Pipeline Completo: Scraper → Supabase
 
-Propósito: Ejecutar scraper y subir automáticamente a Supabase
-Dependencias: supabase, subprocess, os
+Propósito: Ejecutar scraper que sube automáticamente a Supabase
+Dependencias: subprocess, os
 Uso: python pipeline_complete.py pikachu
 Output: Datos scraped y subidos a Supabase
+
+NOTA: Este script ahora es un wrapper simple del scraper.js
+El scraper detecta automáticamente si debe subir a Supabase o generar CSV
 """
 
 import subprocess
 import sys
 import os
-import glob
-from datetime import datetime
-import requests
 from dotenv import load_dotenv
-import csv
 
 # ======================
 # CONFIGURACIÓN
@@ -33,198 +32,78 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SUPABASE_TABLE = os.getenv("SUPABASE_TABLE", "tcg_cards")
 
+# Verificar modo de operación
+USE_SUPABASE = bool(SUPABASE_URL and SUPABASE_KEY)
+
 # ======================
-# PASO 1: EJECUTAR SCRAPER
+# EJECUTAR SCRAPER
 # ======================
 
 def run_scraper(keyword):
     """
     Ejecuta el scraper de Node.js
+    El scraper detecta automáticamente si debe:
+    - Subir directo a Supabase (si hay variables de entorno)
+    - Generar CSV (si no hay variables de entorno)
     
     Args:
         keyword (str): Palabra clave para buscar
     
     Returns:
-        str: Nombre del archivo CSV generado
+        int: Código de salida del scraper
     """
-    print("🔍 PASO 1: Ejecutando scraper...")
-    print(f"   Buscando: {keyword}")
+    mode = "🔗 Supabase Direct Upload" if USE_SUPABASE else "📁 CSV Export"
+    
+    print("=" * 60)
+    print("🚀 PIPELINE: SCRAPER AUTOMATIZADO")
+    print("=" * 60)
+    print(f"🔍 Keyword: {keyword}")
+    print(f"⚙️  Modo: {mode}")
+    print("=" * 60)
     print()
     
     # Ejecutar scraper desde el directorio base del proyecto
     result = subprocess.run(
         ["node", SCRAPER_SCRIPT, keyword],
-        capture_output=True,
-        text=True,
-        cwd=BASE_DIR,  # Ejecutar desde la raíz del proyecto
+        cwd=BASE_DIR,
         encoding='utf-8',
-        errors='ignore'  # Ignorar errores de encoding
+        errors='ignore'
     )
     
-    # Mostrar output del scraper
-    if result.stdout:
-        print(result.stdout)
+    print()
+    print("=" * 60)
     
-    # Verificar si hubo errores
-    if result.returncode != 0:
-        print(f"❌ Error en scraper (código {result.returncode}):")
-        if result.stderr:
-            print(result.stderr)
-        raise Exception(f"Scraper falló con código {result.returncode}")
+    # Verificar resultado
+    if result.returncode == 0:
+        if USE_SUPABASE:
+            print("✅ PIPELINE COMPLETADO")
+            print(f"📊 Datos subidos a Supabase")
+            print(f"🗃️  Tabla: {SUPABASE_TABLE}")
+        else:
+            print("✅ PIPELINE COMPLETADO")
+            print(f"📁 CSV generado exitosamente")
+    else:
+        print("❌ ERROR EN PIPELINE")
+        print(f"💥 Código de salida: {result.returncode}")
     
-    # Buscar el CSV más reciente en el directorio base del proyecto
-    csv_pattern = os.path.join(BASE_DIR, f"*{keyword}*.csv")
-    csv_files = glob.glob(csv_pattern)
+    print("=" * 60)
     
-    if not csv_files:
-        # Intentar buscar cualquier CSV reciente
-        all_csv_pattern = os.path.join(BASE_DIR, "*.csv")
-        all_csv_files = glob.glob(all_csv_pattern)
-        print(f"\n⚠️  No se encontró CSV con keyword '{keyword}'")
-        if all_csv_files:
-            print(f"   CSVs encontrados: {[os.path.basename(f) for f in all_csv_files[:5]]}")
-        raise Exception(f"No se generó CSV para '{keyword}'")
-    
-    # Obtener el más reciente
-    latest_csv = max(csv_files, key=os.path.getctime)
-    
-    print(f"\n   ✅ CSV generado: {os.path.basename(latest_csv)}")
-    return latest_csv
-
-# ======================
-# PASO 2: LEER Y TRANSFORMAR CSV
-# ======================
-
-def read_csv_file(filename):
-    """Lee el CSV y retorna los datos transformados"""
-    data = []
-    
-    # Mapeo de nombres CSV → Supabase
-    column_mapping = {
-        'Nombre': 'nombre',
-        'Edición': 'edicion',
-        'Rareza': 'rareza',
-        'Número': 'numero',
-        'Foto URL': 'foto_url',
-        'Vendedor': 'vendedor',
-        'Precio': 'precio',
-        'Idioma': 'idioma',
-        'Ubicación': 'ubicacion',
-        'Estado': 'estado',
-        'Cantidad': 'cantidad',
-        'URL Producto': 'url_producto',
-        'Fecha Extracción': 'fecha_extraccion'
-    }
-    
-    with open(filename, 'r', encoding='utf-8') as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            # Transformar nombres de columnas y limpiar valores vacíos
-            transformed_row = {}
-            for csv_col, db_col in column_mapping.items():
-                if csv_col in row:
-                    value = row[csv_col]
-                    # Convertir strings vacíos a None (null en JSON)
-                    transformed_row[db_col] = value if value.strip() else None
-            data.append(transformed_row)
-    
-    return data
-
-# ======================
-# PASO 3: SUBIR A SUPABASE
-# ======================
-
-def upload_to_supabase(data, table_name):
-    """
-    Sube datos a Supabase usando API REST con manejo de duplicados
-    
-    Args:
-        data (list): Registros a subir
-        table_name (str): Nombre de la tabla
-    
-    Returns:
-        dict: Respuesta de Supabase
-    """
-    print(f"📤 PASO 3: Subiendo a Supabase...")
-    
-    # Construir URL del endpoint
-    url = f"{SUPABASE_URL}/rest/v1/{table_name}"
-    
-    # Headers con resolution de duplicados
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation,resolution=ignore-duplicates"
-    }
-    
-    # Agregar metadata a cada registro
-    for record in data:
-        record['imported_at'] = datetime.now().isoformat()
-        record['search_keyword'] = SEARCH_KEYWORD
-    
-    # Hacer request
-    response = requests.post(url, json=data, headers=headers)
-    
-    if response.status_code not in [200, 201]:
-        raise Exception(f"Error HTTP {response.status_code}: {response.text}")
-    
-    result = response.json() if response.text else []
-    inserted_count = len(result)
-    
-    if inserted_count < len(data):
-        duplicates = len(data) - inserted_count
-        print(f"   ⚠️  {duplicates} duplicados ignorados")
-    
-    print(f"   ✅ {inserted_count} registros nuevos insertados")
-    
-    return result
+    return result.returncode
 
 # ======================
 # FUNCIÓN PRINCIPAL
 # ======================
 
 def main():
-    """Ejecuta el pipeline completo"""
-    
-    print("=" * 60)
-    print("🚀 PIPELINE COMPLETO: SCRAPER → CSV → SUPABASE")
-    print("=" * 60)
-    print()
-    
-    # Validar configuración
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        print("❌ Error: Variables de entorno no configuradas")
-        print("   Crea archivo .env con SUPABASE_URL y SUPABASE_KEY")
-        sys.exit(1)
+    """Ejecuta el pipeline simplificado"""
     
     try:
-        # Paso 1: Scraper
-        csv_file = run_scraper(SEARCH_KEYWORD)
-        print()
+        exit_code = run_scraper(SEARCH_KEYWORD)
+        sys.exit(exit_code)
         
-        # Paso 2: Leer CSV
-        print("📖 PASO 2: Leyendo CSV...")
-        records = read_csv_file(csv_file)
-        print(f"   ✅ {len(records)} registros leídos")
-        print()
-        
-        # Paso 3: Subir
-        response = upload_to_supabase(records, SUPABASE_TABLE)
-        print()
-        
-        # Resumen
-        print("=" * 60)
-        print("✅ PIPELINE COMPLETADO")
-        print("=" * 60)
-        print(f"Keyword buscado: {SEARCH_KEYWORD}")
-        print(f"CSV generado: {csv_file}")
-        print(f"Registros procesados: {len(records)}")
-        print(f"Registros en Supabase: {len(response)}")
-        print(f"Tabla: {SUPABASE_TABLE}")
-        print()
-        print(f"🔗 Ver datos en: {SUPABASE_URL}/project/default/editor/{SUPABASE_TABLE}")
-        
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Pipeline interrumpido por el usuario")
+        sys.exit(1)
     except Exception as e:
         print()
         print("=" * 60)
@@ -237,9 +116,4 @@ def main():
 # ======================
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: python pipeline_complete.py <keyword>")
-        print("Ejemplo: python pipeline_complete.py pikachu")
-        sys.exit(1)
-    
     main()
