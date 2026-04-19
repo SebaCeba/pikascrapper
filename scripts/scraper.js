@@ -179,7 +179,7 @@ async function uploadToSupabase(rows) {
         throw new Error('SUPABASE_URL y SUPABASE_KEY son requeridos para usar modo Supabase');
     }
 
-    console.log(`\n📤 Subiendo ${rows.length} registros a Supabase...`);
+    console.log(`\n📤 Subiendo ${rows.length} registros a Supabase (modo UPSERT)...`);
     
     // Convertir datos al formato de Supabase (snake_case y valores null para vacíos)
     const supabaseRows = rows.map(row => ({
@@ -195,29 +195,51 @@ async function uploadToSupabase(rows) {
         estado: row.estado || null,
         cantidad: row.cantidad ? parseInt(row.cantidad) : null,
         url_producto: row.url_producto || null,
-        fecha_extraccion: row.fecha_extraccion || null
+        fecha_extraccion: row.fecha_extraccion || null,
+        search_keyword: SEARCH_QUERY.toLowerCase()
     }));
 
     const url = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`;
     
     try {
+        // UPSERT: Inserta nuevos o actualiza existentes basándose en UNIQUE constraint
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'apikey': SUPABASE_KEY,
                 'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Prefer': 'resolution=ignore-duplicates'
+                'Prefer': 'resolution=merge-duplicates,return=representation'
             },
             body: JSON.stringify(supabaseRows)
         });
 
         if (!response.ok) {
             const errorText = await response.text();
+            
+            // Si el error es por falta de constraint, dar instrucciones
+            if (errorText.includes('constraint') || errorText.includes('unique')) {
+                console.log('\n⚠️  Error: Falta UNIQUE constraint en la tabla');
+                console.log('📝 Ejecuta este SQL en Supabase para habilitar UPSERT:');
+                console.log('   docs/setup/add_unique_constraint.sql\n');
+            }
+            
             throw new Error(`Error HTTP ${response.status}: ${errorText}`);
         }
 
-        console.log('✅ Datos subidos exitosamente a Supabase');
+        const result = await response.json();
+        const processed = Array.isArray(result) ? result.length : rows.length;
+        
+        console.log(`✅ ${processed} registros procesados (insertados o actualizados)`);
+        console.log('   • Nuevos vendedores → insertados');
+        console.log('   • Vendedores existentes → precios/stock actualizados');
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error subiendo a Supabase:', error.message);
+        throw error;
+    }
+}
         return true;
     } catch (error) {
         console.error('❌ Error subiendo a Supabase:', error.message);
