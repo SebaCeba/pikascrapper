@@ -48,6 +48,7 @@ Realizar scraping de la web [TCGmatch.cl](https://tcgmatch.cl/) para obtener una
 - **2026-04-19 10:30**: Push a GitHub con implementación completa - workflow optimizado, scraper con modo dual (Supabase/CSV), pipeline_complete.py actualizado como wrapper, listo para ejecución automática en GitHub Actions.
 - **2026-04-19 10:45**: Fix Puppeteer en GitHub Actions - agregados argumentos --no-sandbox y otros flags necesarios para ejecutar Chrome en entornos CI/CD Linux sin privilegios de sandbox.
 - **2026-04-19 11:00**: Implementación sistema UPSERT - scraper ahora actualiza precios existentes en vez de crear duplicados, usando UNIQUE constraint en Supabase, con SQL script de configuración y documentación completa en UPSERT_GUIDE.md.
+- **2026-04-20 08:30**: Corrección de error de sintaxis en scraper.js - eliminado bloque de código duplicado que causaba fallo en GitHub Actions.
 
 
 ## Almacenamiento

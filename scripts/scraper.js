@@ -240,12 +240,6 @@ async function uploadToSupabase(rows) {
         throw error;
     }
 }
-        return true;
-    } catch (error) {
-        console.error('❌ Error subiendo a Supabase:', error.message);
-        throw error;
-    }
-}
 
 // ----------------------------
 // PRINCIPAL

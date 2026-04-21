@@ -444,7 +444,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-19 10:15**: Actualización GitHub Actions workflow - simplificado para ejecutar scraper.js directo sin Python, eliminando dependencia de pipeline_complete.py y artifacts CSV innecesarios
+**2026-04-20 08:30**: Corrección de error de sintaxis en scraper.js - eliminado bloque de código duplicado que causaba fallo en GitHub Actions
 
 ## Tecnologías
 
