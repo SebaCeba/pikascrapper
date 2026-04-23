@@ -444,7 +444,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-23 13:37**: Implementación completa de manejo de duplicados - deduplicación a nivel aplicación en scraper.js, corrección de create_supabase_table.sql (UNIQUE constraint + trigger updated_at), consistencia de nombre de tabla LISTADO_CARTAS
+**2026-04-23 17:42**: Ajuste al esquema real de LISTADO_CARTAS (sin id, cantidad BIGINT); fix add_unique_constraint.sql usa ctid; scraper envía imported_at
 
 ## Tecnologías
 

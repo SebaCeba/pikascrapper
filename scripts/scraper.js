@@ -203,6 +203,7 @@ async function uploadToSupabase(rows) {
     console.log(`\n📤 Subiendo ${rows.length} registros a Supabase (modo UPSERT)...`);
     
     // Convertir datos al formato de Supabase (snake_case y valores null para vacíos)
+    const now = new Date().toISOString();
     const supabaseRows = rows.map(row => ({
         nombre: row.nombre || null,
         edicion: row.edicion || null,
@@ -217,6 +218,7 @@ async function uploadToSupabase(rows) {
         cantidad: row.cantidad ? parseInt(row.cantidad) : null,
         url_producto: row.url_producto || null,
         fecha_extraccion: row.fecha_extraccion || null,
+        imported_at: now,
         search_keyword: SEARCH_QUERY.toLowerCase()
     }));
 

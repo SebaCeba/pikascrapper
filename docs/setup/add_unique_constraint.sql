@@ -5,22 +5,19 @@
 -- ============================================================
 
 -- PASO 1: Eliminar duplicados existentes (si los hay)
--- Mantiene solo el registro más reciente de cada combinación
+-- Usa ctid (identificador físico de fila) porque la tabla no tiene columna id.
+-- Mantiene la primera ocurrencia de cada combinación única.
 -- ============================================================
 
-WITH duplicates AS (
-  SELECT 
-    id,
-    ROW_NUMBER() OVER (
-      PARTITION BY nombre, numero, edicion, vendedor, idioma, estado 
-      ORDER BY fecha_extraccion DESC, created_at DESC
-    ) as rn
-  FROM "LISTADO_CARTAS"
-)
-DELETE FROM "LISTADO_CARTAS"
-WHERE id IN (
-  SELECT id FROM duplicates WHERE rn > 1
-);
+DELETE FROM public."LISTADO_CARTAS" a
+USING public."LISTADO_CARTAS" b
+WHERE a.ctid > b.ctid
+  AND a.nombre    IS NOT DISTINCT FROM b.nombre
+  AND a.numero    IS NOT DISTINCT FROM b.numero
+  AND a.edicion   IS NOT DISTINCT FROM b.edicion
+  AND a.vendedor  IS NOT DISTINCT FROM b.vendedor
+  AND a.idioma    IS NOT DISTINCT FROM b.idioma
+  AND a.estado    IS NOT DISTINCT FROM b.estado;
 
 -- PASO 2: Agregar constraint UNIQUE
 -- Esto previene duplicados futuros basándose en:
@@ -29,26 +26,9 @@ WHERE id IN (
 -- - Variante (idioma + estado)
 -- ============================================================
 
-ALTER TABLE "LISTADO_CARTAS" 
+ALTER TABLE public."LISTADO_CARTAS" 
 ADD CONSTRAINT unique_card_vendor_offer 
 UNIQUE (nombre, numero, edicion, vendedor, idioma, estado);
-
--- ============================================================
--- PASO 3: Agregar trigger para actualizar updated_at en UPSERT
--- ============================================================
-
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_listado_cartas_updated_at
-  BEFORE UPDATE ON "LISTADO_CARTAS"
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================
 -- VERIFICACIÓN
@@ -56,23 +36,24 @@ CREATE TRIGGER trg_listado_cartas_updated_at
 
 -- Ver el constraint creado:
 SELECT 
-  conname as constraint_name,
-  pg_get_constraintdef(oid) as constraint_definition
+  conname AS constraint_name,
+  pg_get_constraintdef(oid) AS constraint_definition
 FROM pg_constraint 
 WHERE conname = 'unique_card_vendor_offer';
 
--- Contar registros antes y después:
-SELECT COUNT(*) as total_registros FROM "LISTADO_CARTAS";
+-- Contar registros después de la limpieza:
+SELECT COUNT(*) AS total_registros FROM public."LISTADO_CARTAS";
 
 -- ============================================================
 -- NOTAS:
 -- ============================================================
 -- 
 -- Con este constraint:
--- ✅ Mismo vendedor + misma carta + mismo idioma/estado = ACTUALIZA
+-- ✅ Mismo vendedor + misma carta + mismo idioma/estado = ACTUALIZA (UPSERT)
 -- ✅ Nuevo vendedor = INSERTA
 -- ✅ Mismo vendedor pero diferente idioma = INSERTA
--- ✅ Precio actualizado = ACTUALIZA registro existente
+-- ✅ Precio o stock actualizado = ACTUALIZA registro existente
 --
--- El scraper ahora hará UPSERT automáticamente
+-- El scraper usa "resolution=merge-duplicates" en el header Prefer,
+-- que activa ON CONFLICT DO UPDATE en Supabase.
 -- ============================================================
