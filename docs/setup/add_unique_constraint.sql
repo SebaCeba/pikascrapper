@@ -1,6 +1,7 @@
 -- ============================================================
 -- Script para agregar UNIQUE CONSTRAINT a tabla existente
 -- Ejecutar en: Supabase → SQL Editor
+-- Tabla: LISTADO_CARTAS (ajusta si usas otro nombre en SUPABASE_TABLE)
 -- ============================================================
 
 -- PASO 1: Eliminar duplicados existentes (si los hay)
@@ -31,6 +32,23 @@ WHERE id IN (
 ALTER TABLE "LISTADO_CARTAS" 
 ADD CONSTRAINT unique_card_vendor_offer 
 UNIQUE (nombre, numero, edicion, vendedor, idioma, estado);
+
+-- ============================================================
+-- PASO 3: Agregar trigger para actualizar updated_at en UPSERT
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_listado_cartas_updated_at
+  BEFORE UPDATE ON "LISTADO_CARTAS"
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================
 -- VERIFICACIÓN
