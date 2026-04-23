@@ -182,7 +182,7 @@ function deduplicateRows(rows) {
     const seen = new Set();
     const unique = [];
     for (const row of rows) {
-        const key = [row.nombre, row.numero, row.edicion, row.vendedor, row.idioma, row.estado].join('||');
+        const key = [row.nombre, row.numero, row.edicion, row.vendedor, row.idioma, row.estado].join('\0');
         if (!seen.has(key)) {
             seen.add(key);
             unique.push(row);
