@@ -174,6 +174,27 @@ async function scrapeProduct(page, url) {
 // ----------------------------
 // PASO 3: Subir datos a Supabase (modo alternativo a CSV)
 // ----------------------------
+
+// Deduplicar filas en memoria usando la misma clave que el UNIQUE constraint de Supabase:
+// (nombre, numero, edicion, vendedor, idioma, estado)
+// Esto es un respaldo por si el constraint aún no está configurado en la BD.
+function deduplicateRows(rows) {
+    const seen = new Set();
+    const unique = [];
+    for (const row of rows) {
+        const key = [row.nombre, row.numero, row.edicion, row.vendedor, row.idioma, row.estado].join('\0');
+        if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(row);
+        }
+    }
+    const duplicates = rows.length - unique.length;
+    if (duplicates > 0) {
+        console.log(`  ⚠️  ${duplicates} filas duplicadas eliminadas antes de subir (total: ${unique.length})`);
+    }
+    return unique;
+}
+
 async function uploadToSupabase(rows) {
     if (!SUPABASE_URL || !SUPABASE_KEY) {
         throw new Error('SUPABASE_URL y SUPABASE_KEY son requeridos para usar modo Supabase');
@@ -182,6 +203,7 @@ async function uploadToSupabase(rows) {
     console.log(`\n📤 Subiendo ${rows.length} registros a Supabase (modo UPSERT)...`);
     
     // Convertir datos al formato de Supabase (snake_case y valores null para vacíos)
+    const now = new Date().toISOString();
     const supabaseRows = rows.map(row => ({
         nombre: row.nombre || null,
         edicion: row.edicion || null,
@@ -196,6 +218,7 @@ async function uploadToSupabase(rows) {
         cantidad: row.cantidad ? parseInt(row.cantidad) : null,
         url_producto: row.url_producto || null,
         fecha_extraccion: row.fecha_extraccion || null,
+        imported_at: now,
         search_keyword: SEARCH_QUERY.toLowerCase()
     }));
 
@@ -351,12 +374,13 @@ async function main() {
     console.log('\n' + '═'.repeat(60));
     
     if (USE_SUPABASE) {
-        // Modo Supabase: subir directo
+        // Modo Supabase: deduplicar en memoria y luego subir
+        const uniqueRows = deduplicateRows(allRows);
         try {
-            await uploadToSupabase(allRows);
+            await uploadToSupabase(uniqueRows);
             console.log(`  ✅ Scraping completado y datos subidos!`);
             console.log(`  📊 ${productLinks.length} productos | ${totalVendedores} ofertas de vendedores`);
-            console.log(`  🔗 ${allRows.length} registros subidos a Supabase`);
+            console.log(`  🔗 ${uniqueRows.length} registros subidos a Supabase`);
         } catch (error) {
             console.error('  ❌ Error en subida a Supabase');
             process.exit(1);

@@ -444,7 +444,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-20 08:30**: Corrección de error de sintaxis en scraper.js - eliminado bloque de código duplicado que causaba fallo en GitHub Actions
+**2026-04-23 17:42**: Ajuste al esquema real de LISTADO_CARTAS (sin id, cantidad BIGINT); fix add_unique_constraint.sql usa ctid; scraper envía imported_at
 
 ## Tecnologías
 
