@@ -51,6 +51,7 @@ Realizar scraping de la web [TCGmatch.cl](https://tcgmatch.cl/) para obtener una
 - **2026-04-23 17:42**: Ajuste al esquema real de LISTADO_CARTAS - sin columna id ni timestamps automáticos, cantidad BIGINT; corregidos create_supabase_table.sql y add_unique_constraint.sql (usa ctid para limpiar duplicados), scraper ahora envía campo imported_at.
 - **2026-04-23 13:37**: Implementación completa de manejo de duplicados - deduplicación a nivel aplicación en scraper.js antes de subir a Supabase, corrección de create_supabase_table.sql (nombre LISTADO_CARTAS + UNIQUE constraint + trigger updated_at), y actualización de add_unique_constraint.sql con trigger automático.
 - **2026-04-20 08:30**: Corrección de error de sintaxis en scraper.js - eliminado bloque de código duplicado que causaba fallo en GitHub Actions.
+- **2026-04-28 21:30**: Corrección crítica de UPSERT en Supabase - agregado on_conflict explícito en scraper.js y deduplicación en memoria por clave compuesta para evitar error HTTP 409 por unique constraint.
 
 
 ## Almacenamiento

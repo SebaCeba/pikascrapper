@@ -444,7 +444,7 @@ Cada fila del CSV representa una oferta única de un vendedor:
 
 ## Último cambio
 
-**2026-04-23 17:42**: Ajuste al esquema real de LISTADO_CARTAS (sin id, cantidad BIGINT); fix add_unique_constraint.sql usa ctid; scraper envía imported_at
+**2026-04-28 21:30**: Corrección crítica de UPSERT en Supabase - se agregó on_conflict explícito y deduplicación en memoria para prevenir errores HTTP 409 por constraint único durante la subida.
 
 ## Tecnologías
 

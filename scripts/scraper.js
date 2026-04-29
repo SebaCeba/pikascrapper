@@ -204,7 +204,7 @@ async function uploadToSupabase(rows) {
     
     // Convertir datos al formato de Supabase (snake_case y valores null para vacíos)
     const now = new Date().toISOString();
-    const supabaseRows = rows.map(row => ({
+    const supabaseRowsRaw = rows.map(row => ({
         nombre: row.nombre || null,
         edicion: row.edicion || null,
         rareza: row.rareza || null,
@@ -222,7 +222,27 @@ async function uploadToSupabase(rows) {
         search_keyword: SEARCH_QUERY.toLowerCase()
     }));
 
-    const url = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`;
+    // Evita conflictos cuando el mismo lote trae la misma combinación única más de una vez.
+    const dedupMap = new Map();
+    for (const record of supabaseRowsRaw) {
+        const dedupKey = [
+            record.nombre,
+            record.numero,
+            record.edicion,
+            record.vendedor,
+            record.idioma,
+            record.estado
+        ].join('||');
+        dedupMap.set(dedupKey, record);
+    }
+    const supabaseRows = Array.from(dedupMap.values());
+    const removedDuplicates = supabaseRowsRaw.length - supabaseRows.length;
+    if (removedDuplicates > 0) {
+        console.log(`⚠️  ${removedDuplicates} filas duplicadas eliminadas antes de subir (total: ${supabaseRows.length})`);
+    }
+
+    const upsertKeys = 'nombre,numero,edicion,vendedor,idioma,estado';
+    const url = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?on_conflict=${encodeURIComponent(upsertKeys)}`;
     
     try {
         // UPSERT: Inserta nuevos o actualiza existentes basándose en UNIQUE constraint
@@ -240,11 +260,16 @@ async function uploadToSupabase(rows) {
         if (!response.ok) {
             const errorText = await response.text();
             
-            // Si el error es por falta de constraint, dar instrucciones
-            if (errorText.includes('constraint') || errorText.includes('unique')) {
-                console.log('\n⚠️  Error: Falta UNIQUE constraint en la tabla');
+            // Mensajes de ayuda para errores comunes de UPSERT
+            if (errorText.includes('42P10') || errorText.includes('there is no unique or exclusion constraint matching the ON CONFLICT specification')) {
+                console.log('\n⚠️  Error: No existe el UNIQUE constraint requerido para UPSERT');
                 console.log('📝 Ejecuta este SQL en Supabase para habilitar UPSERT:');
                 console.log('   docs/setup/add_unique_constraint.sql\n');
+            }
+
+            if (errorText.includes('23505') || errorText.includes('duplicate key value violates unique constraint')) {
+                console.log('\n⚠️  Error: Se detectaron filas duplicadas dentro del mismo lote de subida');
+                console.log('📝 Revisa deduplicación previa en memoria antes del upload\n');
             }
             
             throw new Error(`Error HTTP ${response.status}: ${errorText}`);
